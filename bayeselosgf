@@ -1,0 +1,37 @@
+
+# Run the "bayeselo" program
+# loading all sgf files listed on the command line
+# Need to turn sgf into pgn format:
+# In each sgf --
+#  PB[name1] turns into [Black "name1"]
+# sim for white
+# and RE[B+whatever]
+# turns into [Result "0-1"]
+# sim for white
+
+#cat $@ > bayeselo_temp_input.pgn
+for sgf in "$@"
+do
+  # grep options:
+  # -o for matching portion only, -P for perl syntax so that ? gives non-greedy match
+  grep -oP "PW\[.*?\]" $sgf | sed 's/\[/ \"/' | sed 's/PW/\[White /' |  sed 's/\]/\"\]/' >> bayeselo_temp_input.pgn
+  grep -oP "PB\[.*?\]" $sgf | sed 's/\[/ \"/' | sed 's/PB/\[Black /' |  sed 's/\]/\"\]/' >> bayeselo_temp_input.pgn
+  grep -oP "RE\[.*?\]" $sgf | sed 's/\[/ \"/' | sed 's/RE/\[Result /' | sed 's/B+.*/0-1\"\] 0-1/' | sed 's/W+.*/1-0\"\] 1-0/'  >> bayeselo_temp_input.pgn
+  echo  >> bayeselo_temp_input.pgn
+done
+cat  | bayeselo <<-bayeselocommands
+readpgn bayeselo_temp_input.pgn
+elo
+offset 2000
+advantage 0
+drawelo 0.01
+mm
+exactdist
+ratings
+x
+x
+
+bayeselocommands
+
+rm bayeselo_temp_input.pgn # leave uncommented for testing, will remove it later
+

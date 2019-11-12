@@ -1,0 +1,123 @@
+#! /usr/bin/perl
+
+use warnings;
+use strict;
+
+# Format an SGF file to a single A4 sheet,
+# using sgf2dg
+#
+# takes one command line parameter: name of input file
+#
+# 1. count the moves in the file
+# 2. pass appropriate parameters to sgf2dg
+# 3. do some minor editing on the resulting TeX file
+# 4. run the TeX file through pdftex
+#
+# it will fail if the input file contains variations
+# or if a ko or recapture causes sgf2dg to generate extra diagrams
+
+my ($infile, $infilename, $sgf2dgcmd);
+my ($texfile, $texfilename, $dvifilename, $namelength);
+my ($howmanymoves, $firstbreak, $secondbreak, $thirdbreak);
+my $numcols = 2;
+my $howmanyargs;
+
+$howmanyargs = $#ARGV + 1;
+if ($howmanyargs != 1)
+  {print "Usage: sgfprint filename\n";
+      exit(0)};
+
+$infilename=$ARGV[0];
+
+open $infile, $infilename or die "Can't open $infilename";
+$howmanymoves = CountMoves();
+print "Counted moves: there are ", $howmanymoves, ".\n";
+close $infile;
+
+SetColsAndBreaks();
+
+$sgf2dgcmd = ($numcols == 1) ?
+    "sgf2dg -break " . $firstbreak . " " . $infilename :
+    "sgf2dg -twoColumn -break " . $firstbreak . "," . $secondbreak . "," . $thirdbreak . " " . $infilename;
+
+
+$namelength = length($infilename);
+$texfilename = $infilename;
+substr($texfilename, $namelength-3, 3)="tex";
+$dvifilename = $infilename;
+substr($dvifilename, $namelength-3, 3)="dvi";
+
+if (stat($texfilename)>0) {die "Aborting: TeX file already exists.\n"}
+if (stat($dvifilename)>0) {die "Aborting: dvi file already exists.\n"}
+
+system($sgf2dgcmd);
+TidyTexFile();
+system 'pdftex ' . $texfilename;
+print "\n\nDone. Used command line: ", $sgf2dgcmd, "\n";
+
+########
+
+sub CountMoves {
+    my $howmany = 0;
+    while (<$infile>) {
+	while (/[BW]\[[a-z][a-z]\]/g) {
+	    $howmany++;
+	}
+    } # end while
+    return $howmany;
+} # end CountMoves
+
+
+sub RoundUp {
+# round an integer up to the next multiple of 10
+    my $thenumber = shift;
+    my $lastdigit;
+
+    $lastdigit = $thenumber % 10;
+    $thenumber -= $lastdigit;
+    return $lastdigit==0 ? $thenumber : $thenumber+10;
+} # end RoundUp
+
+
+sub IntHalf {
+# half an integer, rounded up
+# I'm sure I'm missing an easy way to do this!
+    my $thenumber = shift;
+    return ($thenumber % 2 == 0) ? $thenumber/2 : ($thenumber+1)/2;
+}
+
+
+sub SetColsAndBreaks {
+    my $remaining;
+    if ($howmanymoves <= 150) {
+	$numcols = 1;
+	$firstbreak = RoundUp(IntHalf($howmanymoves));
+    }
+    else {
+	$firstbreak = RoundUp(IntHalf(IntHalf($howmanymoves)));
+	$secondbreak = $firstbreak * 2;
+	$remaining = $howmanymoves - $secondbreak;
+	$thirdbreak = $secondbreak + RoundUp(IntHalf($remaining)-3);
+    }
+} # end SetColsAndBreaks
+
+sub TidyTexFile {
+# remove extra \breaks, no page numbers
+    my ($tempfile, $tempfilename, $whichline);
+
+    open $texfile, $texfilename or die "Error: can't open $texfilename";
+    $tempfilename = $texfilename . "-temp";
+    open ($tempfile, '>', $tempfilename) or die "Error opening temporary file";
+    $whichline = 0;
+    while (<$texfile>) {
+	$whichline++;
+	if ($whichline == 18) {
+	    print $tempfile "\\nopagenumbers\n\\vsize=600pt\n"
+	}
+	$_ =~ s/break\\break/break/;
+	print $tempfile $_;
+    }
+    close $texfile;
+    close $tempfile;
+    system 'mv', $tempfilename, $texfilename;
+}
