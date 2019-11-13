@@ -12,6 +12,7 @@
 # only works with even games with no passes in the game record
 # May crash on games of only 1 or two moves
 # May spin into an infinite loop if the engine crashes
+# Will give nonsense results if the bot decides to resign at any point
 
 # Nb this is Python3 not Python2!
 
@@ -32,12 +33,12 @@ from sgfmill import sgf
 from subprocess import Popen, PIPE, STDOUT
 
 temp_filename = "LZlog"
-engine_command = "/opt/leelaz/leelaz17/src/leelaz --threads 2 --noponder -w /opt/leelaz/networks/d351f06e-192x15-2018-07-18.gz -l " + temp_filename # Using network number 157
-engine_command = "/opt/leelaz/leelaz17/src/leelaz --threads 2 --noponder -w /opt/leelaz/networks/b3b00c6d-128x6-2018-03-04.gz -l " + temp_filename # Using small network for fast testing
+engine_command = "/opt/leelaz/leelaz17/src/leelaz --threads 2 -r 1 --noponder -w /opt/leelaz/networks/d351f06e-192x15-2018-07-18.gz -l " + temp_filename # Using network number 157
+#engine_command = "/opt/leelaz/leelaz17/src/leelaz --threads 2 -r 1 --noponder -w /opt/leelaz/networks/b3b00c6d-128x6-2018-03-04.gz -l " + temp_filename # Using small network for fast testing
 
 
 error_ratio = 0.8 # moves where game winrate/LZ winrate < ratio are classed as errors
-error_ratio = 0.95 # moves where game winrate/LZ winrate < ratio are classed as errors
+#error_ratio = 0.95 # moves where game winrate/LZ winrate < ratio are classed as errors
 intuition_threshold = 20 # moves with policy net value >= 20% are classed as "good intuition"
 
 opening_threshold = 30 # first 30 moves of the game are considered "opening"
