@@ -20,7 +20,7 @@
 # to your Leela Zero executable.
 
 # Usage:
-#   python filename.sgf colour playouts
+#   python profile_sgf.py filename.sgf colour playouts
 # where:
 #   filename.sgf is the input game file
 #    (output will be stored in filename.csv and filename.log)
@@ -45,7 +45,7 @@ opening_threshold = 30 # first 30 moves of the game are considered "opening"
 endgame_threshold = 120 # moves 121 onwards are considered "endgame"
 
 if (len(sys.argv) != 4):
-  sys.exit("Usage: python filename.sgf colour playouts")
+  sys.exit("Usage: python profile_sgf.py filename.sgf colour playouts")
 
 input_filename = sys.argv[1]
 colour = sys.argv[2]
