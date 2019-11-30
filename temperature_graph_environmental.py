@@ -7,6 +7,11 @@
 # Before running this, edit the "engine_command=" line below with the path
 # to your KataGo executable.
 
+# Modified for environmental go games:
+#   track the "card temperature" as well as the game temperate
+#   each pass means that the card temperature goes down half a point
+#     add the card temperature to the graph
+
 # Second version, calculate Bill Spight's adjusted temperatures too
 # Also modify to accept passes during the game
 # (mainly so that we can analyse the environmental go game
@@ -114,10 +119,11 @@ p.communicate() # This will end the KataGo process
 
 tempfile = open(temp_filename, "r")
 outfile = open(output_filename, "w")
-outfile.write("move_num,game_move,")
+outfile.write("move_num,game_move,card_temperature,")
 outfile.write("black_move,black_score,white_move,white_score,temperature\n")
 
 move_num = 1
+card_temperature = 20.0
 analyse_for = 'b'
 line = tempfile.readline()
 finished = False
@@ -146,7 +152,10 @@ while not finished:
     white_score = score
     white_move = kata_move
     game_move = text_of_move_num(move_num)
+    if game_move == "pass":
+      card_temperature -= 0.5
     outfile.write(str(move_num)+","+game_move+",")
+    outfile.write(str(card_temperature)+",")
     outfile.write(black_move+","+str(black_score)+",")
     outfile.write(white_move+","+str(white_score)+",")
     # Temperature is *difference* between black and white score,
@@ -187,6 +196,7 @@ axes = plt.gca()
 df.plot(kind="line",  y="raw_temperature", linewidth=0.25, ax=axes)
 df.plot(kind="line",  y="adjusted_temperature", color="black", linewidth=0.5, ax=axes)
 df.plot(kind="line", y="game_temperature", color="green", ax=axes)
+df.plot(kind="line", y="card_temperature", color="purple", linestyle = "dashed", ax=axes)
 axis = plt.axis() # tuple of (xmin, xmax, ymin, ymax)
 if axis[2] > 0: # make sure the y-axis always starts at zero
   axis = (axis[0], axis[1], 0, axis[3])
@@ -199,4 +209,4 @@ axes.grid(linestyle="dotted")
 plt.savefig(image_filename)
 df.to_csv(output_filename, index=False)
 
-os.remove(temp_filename)
+#os.remove(temp_filename)
