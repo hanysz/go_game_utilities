@@ -1,4 +1,5 @@
 
+
 # Turn an SGF file into a temperature graph
 # See discussion at https://lifein19x19.com/viewtopic.php?f=15&t=17069
 
@@ -106,14 +107,22 @@ def flip_colour(c):
   else:
     return 'b'
   
+adjusted_komi = 9.5
+top_card = 20.0
 for node in game.get_main_sequence()[start_move:]:
-   p.stdin.write(b'genmove_debug b\n')
-   p.stdin.write(b'undo\n')
-   p.stdin.write(b'genmove_debug w\n')
-   p.stdin.write(b'undo\n')
-   next_move = node.get_move()
-   if next_move[1] is not None:
-     p.stdin.write(bytes(move_to_gtp(next_move) + '\n', "utf-8"))
+  p.stdin.write(bytes("komi " + str(adjusted_komi) + '\n', "utf-8"))
+  p.stdin.write(b'genmove_debug b\n')
+  p.stdin.write(b'undo\n')
+  p.stdin.write(b'genmove_debug w\n')
+  p.stdin.write(b'undo\n')
+  next_move = node.get_move()
+  if next_move[1] is not None:
+    p.stdin.write(bytes(move_to_gtp(next_move) + '\n', "utf-8"))
+  else: # pass means that someone took a card, need to change the komi
+    sign = 1 if next_move[0] == "w" else -1
+    adjusted_komi = adjusted_komi + top_card*sign
+    top_card = top_card - 0.5
+    
 
 p.communicate() # This will end the KataGo process
 
